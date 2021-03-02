@@ -13,6 +13,8 @@ import sqlite3
 
 global bot
 global TOKEN
+global SCHEDULERED
+SCHEDULERED = False
 TOKEN = bot_token
 bot = telegram.Bot(token=TOKEN)
 bot.setWebhook(URL+'/{}'.format(TOKEN))
@@ -26,6 +28,7 @@ scheduler.start()
 
 @app.route('/{}'.format(TOKEN), methods=['POST','GET'])
 def respond():
+  global SCHEDULERED
   # retrieve the message in JSON and then transform it to Telegram object
   update = telegram.Update.de_json(request.get_json(force=True), bot)
   if update is None or update.message is None or update.message.text is None:
@@ -37,13 +40,16 @@ def respond():
   cursor.execute("create table if not exists \'{}\' (id INTEGER PRIMARY KEY AUTOINCREMENT, fundCode varchar(20))".format("record_" + str(chat_id)))
   cursor.close()
   conn.close()
-  scheduler.add_job(
-    schedule_query,
-    trigger='cron',
-    hour=14,
-    minute=30,
-    args=[bot, chat_id]
-  )
+  if not SCHEDULERED:
+    scheduler.add_job(
+      schedule_query,
+      trigger='cron',
+      day_of_week='mon-fri',
+      hour=14,
+      minute=30,
+      args=[bot, chat_id]
+    )
+    SCHEDULERED = True
 
   # Telegram understands UTF-8, so encode text for unicode compatibility
   text = update.message.text.encode('utf-8').decode()
@@ -53,6 +59,14 @@ def respond():
     欢迎使用FundBot，
     - “query 基金代号” 查询指定基金的单位净值及涨跌幅, 可同时查询多个基金
     - “record 基金代号” 记录基金号, 可同时记录多个基金
+    - “delete 基金代号” 删除记录的基金代号，可同时删除多个基金
+    - “delete all/clean” 清除所有的记录
+    - “list record” 列出目前所有记录
+    - “add schedule 分钟数” 增加一个定时器，在周一到周五的9点到15点之间按指定的间隔自动查询
+    - “remove schedule id” 删除一个定时器
+    - “list schedule” 列出所有的定时器
+    - “help” 显示命令帮助
+      PS：本bot会默认生成一个于周一到周五的每天14点30分运行的定时器，用于自动查询收盘前的涨跌幅
     """
     # send the welcoming message
     bot.sendMessage(chat_id=chat_id, text=bot_welcome)
@@ -61,7 +75,12 @@ def respond():
       “query 基金代号” 查询指定基金的单位净值及涨跌幅, 可同时查询多个基金
       “record 基金代号” 记录基金号, 可同时记录多个基金
       “delete 基金代号” 删除记录的基金代号，可同时删除多个基金
-      “clean” 清除所有的记录
+      “delete all/clean” 清除所有的记录
+      “list record” 列出目前所有记录
+      “add schedule 分钟数” 增加一个定时器，在周一到周五的9点到15点之间按指定的间隔自动查询
+      “remove schedule id” 删除一个定时器
+      “list schedule” 列出所有的定时器
+      PS：本bot会默认生成一个于周一到周五的每天14点30分运行的定时器，用于自动查询收盘前的涨跌幅
       """
     bot.sendMessage(chat_id=chat_id, text=help_text)
 
@@ -183,7 +202,8 @@ def respond():
         scheduler.add_job(
           schedule_query,
           trigger='cron',
-          hour='9-14',
+          day_of_week='mon-fri',
+          hour='9-15',
           minute = '*/'+str(t),
           args=[bot, chat_id]
         )
