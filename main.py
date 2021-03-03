@@ -203,7 +203,7 @@ def respond():
           schedule_query,
           trigger='cron',
           day_of_week='mon-fri',
-          hour='9-15',
+          hour='9-14',
           minute = '*/'+str(t),
           args=[bot, chat_id]
         )
@@ -263,19 +263,24 @@ def index():
    return '.'
 
 def schedule_query(bot, chat_id):
-  with open('record.txt', 'r') as recordFile:
-    lines = recordFile.readlines()
 
-  if len(lines) < 1:
-    return 0 
-  
-  lines = list(set(lines))
-  reply_text = queryFund(lines)
-
-  with open('record.txt', 'w') as recordFile:
-    recordFile.writelines(lines)
-  bot.sendMessage(chat_id=chat_id, text=reply_text)
+  conn = sqlite3.connect('record.db')
+  cursor = conn.cursor()
+  cursor.execute("select fundCode from \'{}\'".format("record_" + str(chat_id)))
+  lines = cursor.fetchall()
   reply_text = ""
+  if len(lines) == 0:
+    reply_text = "目前没有记录，请先建立记录"
+  else:
+    tmp = []
+    for line in lines:
+      tmp.append(line[0])
+    lines = list(set(tmp))
+    reply_text = queryFund(lines)
+    
+  bot.sendMessage(chat_id=chat_id, text=reply_text)
+  cursor.close()
+  conn.close()
 
   return 1
 
