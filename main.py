@@ -116,8 +116,10 @@ def respond():
     else:
       pattern = r'\d+'
       search = re.findall(pattern, text)
-      
-      reply_text = queryFund(search, chat_id)
+      if len(search) == 0:
+        reply_text = "请输入需要查询的基金代码"
+      else:
+        reply_text = queryFund(search, chat_id)
 
     bot.sendMessage(chat_id=chat_id, text=reply_text)
   
