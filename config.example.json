@@ -1,0 +1,10 @@
+[bot_base]
+bot_token = "bot_token"
+bot_user_name = "bot_user_name"
+URL = "URL"
+
+[db]
+host = your host
+port = your port
+user = your user name
+password = your password

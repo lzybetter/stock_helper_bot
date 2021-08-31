@@ -1,6 +1,8 @@
 
-telebot/credentials.py
 *.txt
+test.py
+config.test.json
+config.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
