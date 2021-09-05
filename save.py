@@ -59,6 +59,38 @@ def saveNewRecord(chat_id, newRecords):
     
     return reply_text
 
+def deleteRecord(chat_id, fundCodeList):
+    conn = getConn(db='fund_helper')
+    cur = conn.cursor()
+    reply_text = ""
+    try:
+        for fundCode in fundCodeList:
+            delete_sql = "delete from %s where fundCode = '%s'"%(("record_"+chat_id).strip(), fundCode)
+            cur.execute(delete_sql)
+        reply_text = "已删除:%s"%(','.join(fundCodeList))
+    except:
+        reply_text = "删除过程出现错误，请重试"
+    finally:
+        cur.close()
+        conn.close()
+    return reply_text
+
+def deleteAllRecord(chat_id):
+    conn = getConn(db='fund_helper')
+    cur = conn.cursor()
+    reply_text = ""
+    try:
+        deleteAll = "truncate table %s"%("record_"+chat_id).strip()
+        cur.execute(deleteAll)
+        conn.commit()
+        reply_text = "已经删除全部记录"
+    except:
+        reply_text = "删除过程出现错误，请重试"
+    finally:
+        cur.close()
+        conn.close()
+    return reply_text
+
 def queryDB(chat_id, fundCodeList=None, needColumnsList=None):
 
     result = ""
@@ -97,14 +129,12 @@ def queryDB(chat_id, fundCodeList=None, needColumnsList=None):
 
     return result
 
-
 def buyRecord(chat_id, updateList):
     
 
     reply_text = ""
     for record in updateList:
         # 字典格式: {"fundCode":{"cost_price": 123, "total":1234}}
-        print(record)
         fundCode= list(record.keys())[0]
         cost_price, total_price = record[fundCode].items()
         cost_price = cost_price[1]
@@ -124,3 +154,35 @@ def buyRecord(chat_id, updateList):
             conn.close()
         
     return reply_text
+
+def sellRecord(chat_id, updateList):
+    reply_text = ""
+
+    for record in updateList:
+        # 字典格式: {"fundCode":{"isAll":True,"cost_price": 123, "total":1234}}
+        fundCode= list(record.keys())[0]
+        isAll, cost_price, total_price = record[fundCode].items()
+        isAll = isAll[1]
+        if isAll:
+            isHold = 0
+            cost_price = 0
+            total_price = 0
+        else:
+            isHold = 1
+            cost_price = cost_price[1]
+            total_price = total_price[1]
+        update_sql = "UPDATE %s SET cost_price=%f, total=%f,isHold = %d where fundCode = \'%s\'"%(("record_"+chat_id).strip(), cost_price, total_price, isHold, fundCode)
+        conn = getConn(db='fund_helper')
+        cur = conn.cursor()
+        try:
+            cur.execute(update_sql)
+            conn.commit()
+            reply_text = reply_text + "%s记录完毕\n"%(fundCode)
+        except:
+            reply_text = reply_text + "\n\n错误，请重试"
+        finally:
+            cur.close()
+            conn.close()
+
+    return reply_text
+
