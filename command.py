@@ -82,3 +82,5 @@ def saveRecord(chat_id, save_text):
     
     return reply_text
     
+def deleteRecord(chat_id, delete_text):
+    pass

@@ -1,5 +1,6 @@
 # import everything
 from flask import Flask, request
+from requests.api import delete
 from query import query
 import telegram
 import requests
@@ -117,6 +118,13 @@ def respond():
     
     bot.sendMessage(chat_id=chat_id, text=reply_text)
 
+  elif "delete record" in text:
+    reply_text = ""
+    if len(text.split(" ")) == 2:
+      reply_text = "请输入需要删除的基金代码"
+    else:
+      delete_text = text.split(" ")[2:]
+      reply_text = command.deleteRecord(chat_id, delete_text)
   
   elif "add schedule" in text:
     pattern = r'\d+'
