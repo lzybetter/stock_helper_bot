@@ -3,9 +3,9 @@ from requests.exceptions import ReadTimeout
 import json
 import re
 import os
-from CMD import CODE_TYPE
+from CMD import CN_CODE_TYPE
 
-def queryAll(codeDic):
+def query(codeDic):
     
     fundList = []
     AShareList = []
@@ -62,7 +62,7 @@ def queryAShares(AShareList):
         if len(str(ashare.strip())) != 6:
             tmp ="A股代码为6位，请检查".format(str(ashare.strip()))
         else:
-            ashare_code = CODE_TYPE[ashare[0:3]] + ashare
+            ashare_code = CN_CODE_TYPE[ashare[0:3]] + ashare
             try:
                 res = requests.get("https://hq.sinajs.cn/list={}".format(ashare_code.strip()),timeout=5)
             except ReadTimeout as e:
@@ -160,7 +160,7 @@ def queryName(codeDic):
                 tmp = {code:{"isOk":True, "fundName":data['name'], "fundType":ctype, "comment":""}}
 
         elif ctype == 'cn':
-            ashare_code = CODE_TYPE[code[0:3]] + code
+            ashare_code = CN_CODE_TYPE[code[0:3]] + code
             try:
                 res = requests.get("https://hq.sinajs.cn/list={}".format(ashare_code.strip()),timeout=5)
             except ReadTimeout as e:
@@ -194,4 +194,5 @@ def queryName(codeDic):
                 tmp = {code:{"isOk":True, "fundName":hShareSearch.split(',')[1], "fundType":ctype, "comment":""}}
         
         result.append(tmp)
+        
     return result

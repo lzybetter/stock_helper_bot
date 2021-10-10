@@ -3,6 +3,7 @@
 test.py
 config.test.json
 config.json
+*.bak
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
