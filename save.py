@@ -1,5 +1,4 @@
 import pymysql
-import query
 from config import getSqlConfig
 
 def getConn(db=None):

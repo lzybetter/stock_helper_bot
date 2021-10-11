@@ -2,7 +2,6 @@ import requests
 from requests.exceptions import ReadTimeout
 import json
 import re
-import os
 from CMD import CN_CODE_TYPE
 
 def query(codeDic):

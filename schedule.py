@@ -1,6 +1,5 @@
 import command
 import re
-from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.base import JobLookupError
 
 def schedule_query(chat_id):

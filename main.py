@@ -1,13 +1,7 @@
 # import everything
 from flask import Flask, request
-from requests.api import delete
-from query import query
 import telegram
-import requests
-from requests.exceptions import ReadTimeout
-import re
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.jobstores.base import JobLookupError
 import config
 import command
 import save
@@ -36,6 +30,7 @@ def respond():
   if update is None or update.message is None or update.message.text is None:
     return 'Error'
   chat_id = update.message.chat.id
+  chat_id = str(chat_id)
   msg_id = update.message.message_id
   save.createTable(chat_id)
   if not SCHEDULERED:
@@ -48,6 +43,7 @@ def respond():
       args=[bot, chat_id]
     )
     SCHEDULERED = True
+    save.createTable(chat_id)
 
   # Telegram understands UTF-8, so encode text for unicode compatibility
   text = update.message.text.encode('utf-8').decode()
