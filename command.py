@@ -28,8 +28,12 @@ def queryCode(query_text):
                 reply_text = reply_text + "代码必须应为数字：" + t + "\n"
             elif code_type == 'hk' and len(t.strip()) != 5:
                 reply_text = reply_text + "港股代码应为5位: " + t + "\n"
-            elif code_type in ['fu', 'cn'] and len(t.strip()) != 6:
-                reply_text = reply_text + "A股/基金代码应为6位: " + t + "\n"
+            elif code_type == 'cn' and len(t.strip()) != 6:
+                reply_text = reply_text + "A股代码应为6位: " + t + "\n"
+            elif code_type == 'etf' and len(t.strip()) != 6:
+                reply_text = reply_text + "ETF代码应为6位: " + t + "\n"
+            elif code_type == 'fu' and len(t.strip()) != 6:
+                reply_text = reply_text + "基金代码应为6位: " + t + "\n"
             else:
                 codeDict[t] = code_type
     if len(codeDict) == 0:
@@ -52,8 +56,12 @@ def saveRecord(chat_id, save_text):
                 reply_text = reply_text + "代码必须应为数字：" + t + "\n"
             elif code_type == 'hk' and len(t.strip()) != 5:
                 reply_text = reply_text + "港股代码应为5位: " + t + "\n"
-            elif code_type in ['fu', 'cn'] and len(t.strip()) != 6:
-                reply_text = reply_text + "A股/基金代码应为6位: " + t + "\n"
+            elif code_type == 'cn' and len(t.strip()) != 6:
+                reply_text = reply_text + "A股代码应为6位: " + t + "\n"
+            elif code_type == 'etf' and len(t.strip()) != 6:
+                reply_text = reply_text + "ETF代码应为6位: " + t + "\n"
+            elif code_type == 'fu' and len(t.strip()) != 6:
+                reply_text = reply_text + "基金代码应为6位: " + t + "\n"
             else:
                 lines = save.queryDB(chat_id, fundCodeList=[t], needColumnsList=["fundCode"])
                 if len(lines) > 0:

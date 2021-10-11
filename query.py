@@ -9,6 +9,7 @@ def query(codeDic):
     fundList = []
     AShareList = []
     HShareList = []
+    ETFList = []
     for code, ctype in codeDic.items():
         if ctype == 'fu':
             fundList.append(code)
@@ -16,10 +17,13 @@ def query(codeDic):
             AShareList.append(code)
         elif ctype == 'hk':
             HShareList.append(code)
+        elif ctype == 'etf':
+            ETFList.append(code)
     fundResult = queryFund(fundList)
     aShareResult = queryAShares(AShareList)
     hShareResult = queryHShares(HShareList)
-    reply_text = fundResult + aShareResult + hShareResult
+    ETFResult = queryETF(ETFList)
+    reply_text = fundResult + aShareResult + hShareResult + ETFResult
     return reply_text
 
 
@@ -61,7 +65,13 @@ def queryAShares(AShareList):
         if len(str(ashare.strip())) != 6:
             tmp ="A股代码为6位，请检查".format(str(ashare.strip()))
         else:
-            ashare_code = CN_CODE_TYPE[ashare[0:3]] + ashare
+            if ashare[0:2] in CN_CODE_TYPE:
+                ashare_code = CN_CODE_TYPE[ashare[0:2]] + ashare
+            elif ashare[0:3] in CN_CODE_TYPE:
+                ashare_code = CN_CODE_TYPE[ashare[0:3]] + ashare
+            else:
+                reply_text = reply_text + "该代码不存在或暂不支持该代码\n"
+                continue
             try:
                 res = requests.get("https://hq.sinajs.cn/list={}".format(ashare_code.strip()),timeout=5)
             except ReadTimeout as e:
@@ -128,6 +138,42 @@ def queryHShares(HShareList):
                 priceTime = hShareSearch.split(',')[-2].replace('/','-') + " " + hShareSearch.split(',')[-1]
 
                 tmp = "股票代码: {}, 股票名称：{}, 实时价格: {},涨跌: {}%,更新时间: {}".format(hshare, shareName, shareNowPrice, rate, priceTime)
+    
+        reply_text = reply_text + "\n\n" + tmp
+
+    return reply_text
+
+def queryETF(ETFList):
+    if len(ETFList) == 0:
+        return ""
+    reply_text = ""
+    for etf in ETFList:
+        if len(str(etf.strip())) != 6:
+            tmp ="场外ETF代码为6位，请检查".format(str(etf.strip()))
+        else:
+            etf_code = 'f_' + etf
+            try:
+                res = requests.get("https://hq.sinajs.cn/list={}".format(etf_code.strip()),timeout=5)
+            except ReadTimeout as e:
+                tmp = "ETF代码: {}, 查询超时，请稍后再试".format(str(etf.strip()))
+                continue
+            if res.status_code == 200:
+                etfSearch = res.text.split("\"")[1]
+            else:
+                tmp = "ETF代码: {}, 查询错误，请稍后再试".format(str(etf.strip()))
+                continue
+            if len(etfSearch) == 0:
+                tmp = "不存在该ETF代码：{}".format(etf.strip())
+            # 遍历结果
+            else:
+                # 名称
+                etfName = etfSearch.split(',')[1]
+                # 最新净值
+                etfNowPrice = float(etfSearch.split(',')[2])
+                # 时间
+                priceTime = etfSearch.split(',')[-2]
+
+                tmp = "ETF代码: {}, ETF名称：{}, 实时价格: {}, 更新时间: {}".format(etf, etfName, etfNowPrice, priceTime)
     
         reply_text = reply_text + "\n\n" + tmp
 

@@ -125,6 +125,10 @@ def respond():
         reply_text = command.deleteRecord(chat_id, delete_text)
     bot.sendMessage(chat_id=chat_id, text=reply_text)
   
+  elif "list my record" in text:
+    reply_text = command.listRecord(chat_id)
+    bot.sendMessage(chat_id=chat_id, text=reply_text)
+    
   elif "add schedule" in text:
     reply_text = schedule.add_schedule(scheduler, bot, chat_id, text)
     bot.sendMessage(chat_id=chat_id, text=reply_text)
