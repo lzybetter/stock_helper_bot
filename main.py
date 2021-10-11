@@ -11,8 +11,7 @@ from apscheduler.jobstores.base import JobLookupError
 import config
 import command
 import save
-import CMD
-import util
+import schedule
 
 global bot
 global TOKEN
@@ -41,7 +40,7 @@ def respond():
   save.createTable(chat_id)
   if not SCHEDULERED:
     scheduler.add_job(
-      schedule_query,
+      schedule.schedule,
       trigger='cron',
       day_of_week='mon-fri',
       hour=14,
@@ -120,29 +119,19 @@ def respond():
 
   elif "delete record" in text:
     reply_text = ""
-    if len(text.split(" ")) == 2:
-      reply_text = "请输入需要删除的基金代码"
+    if 'all' in text:
+      reply_text = command.deleteAll(chat_id)
     else:
-      delete_text = text.split(" ")[2:]
-      reply_text = command.deleteRecord(chat_id, delete_text)
+      if len(text.split(" ")) == 2:
+        reply_text = "请输入需要删除的基金代码"
+      else:
+        delete_text = text.split(" ")[2:]
+        reply_text = command.deleteRecord(chat_id, delete_text)
+    bot.sendMessage(chat_id=chat_id, text=reply_text)
   
   elif "add schedule" in text:
-    pattern = r'\d+'
-    search = re.findall(pattern, text)
-    for t in search:
-      if int(t) < 0 or int(t) > 60:
-        bot.sendMessage(chat_id=chat_id, text="时间间隔只能在0-60之间")
-      else:
-        scheduler.add_job(
-          schedule_query,
-          trigger='cron',
-          day_of_week='mon-fri',
-          hour='9-11, 13-14',
-          minute = '*/'+str(t),
-          args=[bot, chat_id]
-        )
-        reply_text = "已完成"
-        bot.sendMessage(chat_id=chat_id, text=reply_text)
+    reply_text = schedule.add_schedule(scheduler, bot, chat_id, text)
+    bot.sendMessage(chat_id=chat_id, text=reply_text)
   
   elif "remove schedule" in text:
     if "all" in text:
@@ -150,29 +139,11 @@ def respond():
       reply_text = "已删除所有任务"
       bot.sendMessage(chat_id=chat_id, text=reply_text)
     else: 
-      search = text.split(" ")
-      finish = []
-      for item in search:
-        if item=="" or item == "remove" or item == "schedule" or item == "remove schedule":
-          continue
-        try:
-          scheduler.remove_job(item)
-          finish.append(item)
-        except JobLookupError as e:
-          bot.sendMessage(chat_id=chat_id, text="没有指定id的任务:{}".format(item))
-
-      reply_text = "已删除指定id任务: {}".format(" ".join(finish))
+      reply_text = schedule.delete_schedule(schedule, text)
       bot.sendMessage(chat_id=chat_id, text=reply_text)
 
   elif "list schedule" in text:
-    scheduler_list = scheduler.get_jobs()
-    if len(scheduler_list) == 0:
-      reply_text = "没有任务"
-    else:
-      reply_text = ""
-      for j in scheduler_list:
-        tmp = "id: {}, 计划: {}, 下一次运行时间: {}".format(j.id, j.trigger, j.next_run_time)
-        reply_text = reply_text + tmp + '\n\n'
+    reply_text = schedule.list_schedule(scheduler)
     bot.sendMessage(chat_id,text=reply_text)
 
   else:
@@ -195,31 +166,6 @@ def set_webhook():
 @app.route('/')
 def index():
    return '.'
-
-def schedule_query(bot, chat_id):
-
-  conn = sqlite3.connect('record.db')
-  cursor = conn.cursor()
-  cursor.execute("select fundCode from \'{}\'".format("record_" + str(chat_id)))
-  lines = cursor.fetchall()
-  reply_text = ""
-  if len(lines) == 0:
-    reply_text = "目前没有记录，请先建立记录"
-  else:
-    tmp = []
-    for line in lines:
-      tmp.append(line[0])
-    lines = list(set(tmp))
-    reply_text = queryFund(lines)
-    
-  bot.sendMessage(chat_id=chat_id, text=reply_text)
-  cursor.close()
-  conn.close()
-
-  return 1
-
-
-
 
 if __name__ == '__main__':
   app.run()

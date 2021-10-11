@@ -45,7 +45,6 @@ def saveNewRecord(chat_id, newRecords):
         save_sql = save_sql + "(\'%s\', \'%s\', \'%s\', %d, %d), "%(fundCode, fundName, fundType, 0, 1)
     
     save_sql = save_sql[0:-2]
-    print(save_sql)
 
     try:
         cur.execute(save_sql)
@@ -91,24 +90,43 @@ def deleteAllRecord(chat_id):
         conn.close()
     return reply_text
 
-def queryDB(chat_id, fundCodeList=None, needColumnsList=None):
+def queryDB(chat_id, fundCodeList=None, needColumnsList=None, condition=None):
 
     result = ""
     conn = getConn(db='fund_helper')
     cur = conn.cursor()
 
-    if fundCodeList is None and needColumnsList is None:
+    if fundCodeList is None and needColumnsList is None and condition is None:
         query_sql = "select * from %s"%("record_"+chat_id).strip()
     elif fundCodeList is None:
         query_sql = "select "
-        for c in needColumnsList:
-            query_sql = query_sql + c + ', '
-        query_sql = query_sql[0:-2] + " from %s"%("record_"+chat_id).strip()
+        if needColumnsList is not None:
+            for c in needColumnsList:
+                query_sql = query_sql + c + ', '
+            query_sql = query_sql[0:-2] + " from %s"%("record_"+chat_id).strip()
+        else:
+            query_sql = "select * from %s"%("record_"+chat_id).strip()
+        if condition is not None:
+            query_sql = query_sql + " where "
+            for column, value in condition.items():
+                if "and" not in query_sql:
+                    query_sql = query_sql + "%s = %s"%(column, value)
+                else:
+                    query_sql = query_sql + " and %s = %s"%(column, value)
     elif needColumnsList is None:
-        query_sql = "select * from %s where fundCode in ("%("record_"+chat_id).strip()
-        for fundCode in fundCodeList:
-            query_sql = query_sql + fundCode + ","
-        query_sql = query_sql[0:-1] + ")"
+        query_sql = "select * from %s"%("record_"+chat_id).strip()
+        if fundCodeList is not None:
+            query_sql = query_sql + " where fundCode in ("
+            for fundCode in fundCodeList:
+                query_sql = query_sql + fundCode + ","
+            query_sql = query_sql[0:-1] + ")"
+        if condition is not None:
+            query_sql = query_sql + "where "
+            for column, value in condition.items():
+                if "and" not in query_sql:
+                    query_sql = query_sql + "%s = %s"%(column, value)
+                else:
+                    query_sql = query_sql + " and %s = %s"%(column, value)
     else:
         query_sql = "select "
         for c in needColumnsList:
@@ -117,7 +135,9 @@ def queryDB(chat_id, fundCodeList=None, needColumnsList=None):
         for fundCode in fundCodeList:
             query_sql = query_sql + "\'" +fundCode + "\',"
         query_sql = query_sql[0:-1] + ")"
-    
+        if condition is not None:
+            for column, value in condition.items():
+                query_sql = query_sql + " and %s = %s"%(column, value)
     try:
         cur.execute(query_sql)
         result = cur.fetchall()
@@ -131,7 +151,6 @@ def queryDB(chat_id, fundCodeList=None, needColumnsList=None):
 
 def buyRecord(chat_id, updateList):
     
-
     reply_text = ""
     for record in updateList:
         # 字典格式: {"fundCode":{"cost_price": 123, "total":1234}}

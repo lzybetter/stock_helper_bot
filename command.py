@@ -4,7 +4,7 @@ import CMD
 import util
 
 def queryAll(chat_id):
-    lines = save.queryDB(chat_id, needColumnsList=['fundCode', 'type'])
+    lines = save.queryDB(chat_id, needColumnsList=['fundCode', 'type'], condition={"isWatch": 1})
     reply_text = ""
     if len(lines) == 0:
         reply_text = "目前没有记录，请先建立记录"
@@ -45,7 +45,6 @@ def saveRecord(chat_id, save_text):
     code_type = 'fu'
     codeDict = {}
     for t in save_text:
-        print(t)
         if t in CMD.CODE_TYPE:
             code_type = t
         else:
@@ -63,12 +62,11 @@ def saveRecord(chat_id, save_text):
                     codeDict[t] = code_type
         
     if len(codeDict) == 0:
-        reply_text = "请输入需要记录的有效的代码"
+        reply_text = reply_text + "请输入需要记录的有效的代码"
     else:
         queryResult = query.queryName(codeDict)
         saveDict = {}
         for r in queryResult:
-            print(list(r.items()))
             code, name = list(r.items())[0]
             if name['isOk']:
                 saveDict[code] = {"fundName":name["fundName"], "fundType": name['fundType']}
@@ -83,4 +81,46 @@ def saveRecord(chat_id, save_text):
     return reply_text
     
 def deleteRecord(chat_id, delete_text):
-    pass
+    reply_text = ""
+    fundCodeList = []
+    for t in delete_text:
+        print(t)
+        if not util.isNumber(t):
+            reply_text = reply_text + "代码必须应为数字：" + t + "\n"
+        else:
+            lines = save.queryDB(chat_id, fundCodeList=[t], needColumnsList=["fundCode"])
+            if len(lines) == 0:
+                reply_text = reply_text + "没有该记录： " + t + '\n'
+            else:
+                fundCodeList.append(t)
+    if len(fundCodeList) == 0:
+        reply_text = reply_text + "请输入需要删除的有效的代码"
+    else:
+        reply_text = reply_text + save.deleteRecord(chat_id, fundCodeList)
+    
+    return reply_text
+
+def deleteAll(chat_id):
+    return save.deleteAllRecord(chat_id)
+
+def listRecord(chat_id):
+    reply_text = ""
+    lines = save.queryDB(chat_id, needColumnsList=['fundCode', "fundName", 'type', "isHold", "isWatch"])
+    print(lines)
+    if len(lines) == 0:
+        reply_text = "目前没有记录，请先建立记录"
+    else:
+        for line in lines:
+            if line[3] == 0:
+                isHold = "否"
+            else:
+                isHold = "是"
+            if line[4] == 0:
+                isWatch = "否"
+            else:
+                isWatch = "是"
+            tmp = "基金代码：%s，基金名称：%s, 基金类型：%s，是否持有：%s，是否关注：%s \n"\
+                %(line[0], line[1], line[2], isHold, isWatch)
+            reply_text = reply_text + tmp
+    
+    return reply_text
