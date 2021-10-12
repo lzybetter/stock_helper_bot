@@ -151,14 +151,30 @@ def queryETF(ETFList):
         if len(str(etf.strip())) != 6:
             tmp ="场外ETF代码为6位，请检查".format(str(etf.strip()))
         else:
-            etf_code = 'f_' + etf
+            # 对于场外ETF，一些QDII基金无实时信息，接口请求时查询f_code;
+            # 而其他场外ETF，有实时信息，接口请求时查询fu_code;
+            # 因此，先查询fu_code，如无结果，再查询f_code；
+            etf_code = 'fu_' + etf
             try:
                 res = requests.get("https://hq.sinajs.cn/list={}".format(etf_code.strip()),timeout=5)
             except ReadTimeout as e:
                 tmp = "ETF代码: {}, 查询超时，请稍后再试".format(str(etf.strip()))
                 continue
+            etfSearch = []
             if res.status_code == 200:
                 etfSearch = res.text.split("\"")[1]
+                if len(etfSearch) == 0:
+                    etf_code = 'f_' + etf
+                    try:
+                        res = requests.get("https://hq.sinajs.cn/list={}".format(etf_code.strip()),timeout=5)
+                    except ReadTimeout as e:
+                        tmp = "ETF代码: {}, 查询超时，请稍后再试".format(str(etf.strip()))
+                        continue
+                    if res.status_code == 200:
+                        etfSearch = res.text.split("\"")[1]
+                    else:
+                        tmp = "ETF代码: {}, 查询错误，请稍后再试".format(str(etf.strip()))
+                        continue
             else:
                 tmp = "ETF代码: {}, 查询错误，请稍后再试".format(str(etf.strip()))
                 continue
@@ -168,13 +184,25 @@ def queryETF(ETFList):
             else:
                 # 名称
                 etfName = etfSearch.split(',')[0]
-                # 最新净值
-                etfNowPrice = float(etfSearch.split(',')[1])
                 # 时间
-                priceTime = etfSearch.split(',')[-2]
+                if etf_code[0:2] == "f_":
+                    # 对于QDII，不计算实时净值和涨跌
+                    # 最新净值
+                    etfNowPrice = float(etfSearch.split(',')[1])
+                    priceTime = etfSearch.split(',')[-2]
+                    tmp = "ETF代码: {}, ETF名称：{}, 最新净值: {}, 更新时间: {}".format(etf, etfName, etfNowPrice, priceTime)
+                else:
+                    etf_code = "fu_" + etf
+                    # 其他ETF计算实时净值和涨跌
+                    # 昨收
+                    etfLastDayPrice = float(etfSearch.split(',')[3])
+                    # 实时价格
+                    etfNowPrice = float(etfSearch.split(',')[2])
+                    # 涨跌
+                    rate = round((etfNowPrice - etfLastDayPrice)/etfLastDayPrice*100,2)
+                    priceTime = etfSearch.split(',')[-1] + etfSearch.split(',')[1]
+                    tmp = "ETF代码: {}, ETF名称：{}, 当前净值: {},涨跌: {}%,更新时间: {}".format(etf, etfName, etfNowPrice, rate, priceTime)
 
-                tmp = "ETF代码: {}, ETF名称：{}, 实时价格: {}, 更新时间: {}".format(etf, etfName, etfNowPrice, priceTime)
-    
         reply_text = reply_text + "\n\n" + tmp
 
     return reply_text
