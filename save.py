@@ -16,7 +16,7 @@ def createTable(chat_id):
     cur.execute('use fund_helper')
     cur.execute('create table if not exists %s (id int AUTO_INCREMENT not null COMMENT \'主键\', \
     fundCode VARCHAR(20) not null COMMENT \'基金代码\', \
-    fundName VARCHAR(20) default null COMMENT \'基金名称\',\
+    fundName VARCHAR(100) default null COMMENT \'基金名称\',\
     type  VARCHAR(20) not null COMMENT \'类型， fu-基金，cn-A股，hk-港股\', \
     isHold int not null COMMENT \'是否持仓\', \
     cost_price float COMMENT \'持仓成本\', \
@@ -44,6 +44,7 @@ def saveNewRecord(chat_id, newRecords):
         save_sql = save_sql + "(\'%s\', \'%s\', \'%s\', %d, %d), "%(fundCode, fundName, fundType, 0, 1)
     
     save_sql = save_sql[0:-2]
+    print(save_sql)
 
     try:
         cur.execute(save_sql)
@@ -65,6 +66,7 @@ def deleteRecord(chat_id, fundCodeList):
         for fundCode in fundCodeList:
             delete_sql = "delete from %s where fundCode = '%s'"%(("record_"+chat_id).strip(), fundCode)
             cur.execute(delete_sql)
+            conn.commit()
         reply_text = "已删除:%s"%(','.join(fundCodeList))
     except:
         reply_text = "删除过程出现错误，请重试"

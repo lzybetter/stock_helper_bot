@@ -1,7 +1,9 @@
 # import everything
 from flask import Flask, request
 import telegram
+import re
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.jobstores.base import JobLookupError
 import config
 import command
 import save
@@ -35,7 +37,7 @@ def respond():
   save.createTable(chat_id)
   if not SCHEDULERED:
     scheduler.add_job(
-      schedule.schedule,
+      schedule_query,
       trigger='cron',
       day_of_week='mon-fri',
       hour=14,
@@ -43,7 +45,6 @@ def respond():
       args=[bot, chat_id]
     )
     SCHEDULERED = True
-    save.createTable(chat_id)
 
   # Telegram understands UTF-8, so encode text for unicode compatibility
   text = update.message.text.encode('utf-8').decode()
@@ -115,20 +116,17 @@ def respond():
 
   elif "delete record" in text:
     reply_text = ""
-    if 'all' in text:
-      reply_text = command.deleteAll(chat_id)
+    if len(text.split(" ")) == 2:
+      reply_text = "请输入需要删除的基金代码"
     else:
-      if len(text.split(" ")) == 2:
-        reply_text = "请输入需要删除的基金代码"
-      else:
-        delete_text = text.split(" ")[2:]
-        reply_text = command.deleteRecord(chat_id, delete_text)
+      delete_text = text.split(" ")[2:]
+      reply_text = command.deleteRecord(chat_id, delete_text)
+    bot.sendMessage(chat_id=chat_id, text=reply_text)
+
+  elif "list my record" in text:
+    reply_text = command.listRecord(chat_id)    
     bot.sendMessage(chat_id=chat_id, text=reply_text)
   
-  elif "list my record" in text:
-    reply_text = command.listRecord(chat_id)
-    bot.sendMessage(chat_id=chat_id, text=reply_text)
-    
   elif "add schedule" in text:
     reply_text = schedule.add_schedule(scheduler, bot, chat_id, text)
     bot.sendMessage(chat_id=chat_id, text=reply_text)
@@ -138,11 +136,12 @@ def respond():
       scheduler.remove_all_jobs()
       reply_text = "已删除所有任务"
       bot.sendMessage(chat_id=chat_id, text=reply_text)
+
     else: 
-      reply_text = schedule.delete_schedule(schedule, text)
+      reply_text = schedule.delete_schedule(scheduler, text)
       bot.sendMessage(chat_id=chat_id, text=reply_text)
 
-  elif "list schedule" in text:
+  elif "list my schedule" in text:
     reply_text = schedule.list_schedule(scheduler)
     bot.sendMessage(chat_id,text=reply_text)
 
@@ -166,6 +165,31 @@ def set_webhook():
 @app.route('/')
 def index():
    return '.'
+
+def schedule_query(bot, chat_id):
+
+  conn = sqlite3.connect('record.db')
+  cursor = conn.cursor()
+  cursor.execute("select fundCode from \'{}\'".format("record_" + str(chat_id)))
+  lines = cursor.fetchall()
+  reply_text = ""
+  if len(lines) == 0:
+    reply_text = "目前没有记录，请先建立记录"
+  else:
+    tmp = []
+    for line in lines:
+      tmp.append(line[0])
+    lines = list(set(tmp))
+    reply_text = queryFund(lines)
+    
+  bot.sendMessage(chat_id=chat_id, text=reply_text)
+  cursor.close()
+  conn.close()
+
+  return 1
+
+
+
 
 if __name__ == '__main__':
   app.run()

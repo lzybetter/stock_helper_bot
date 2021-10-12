@@ -167,9 +167,9 @@ def queryETF(ETFList):
             # 遍历结果
             else:
                 # 名称
-                etfName = etfSearch.split(',')[1]
+                etfName = etfSearch.split(',')[0]
                 # 最新净值
-                etfNowPrice = float(etfSearch.split(',')[2])
+                etfNowPrice = float(etfSearch.split(',')[1])
                 # 时间
                 priceTime = etfSearch.split(',')[-2]
 
@@ -188,6 +188,7 @@ def queryName(codeDic):
             except ReadTimeout as e:
                 tmp = {code:{"isOk":False, "fundName":"", "fundType":ctype, "comment":"请求超时"}}
                 continue
+            fundsearch = []
             if res.status_code == 200:
                 # 正则表达式
                 pattern = r'^jsonpgz\((.*)\)'
@@ -211,6 +212,7 @@ def queryName(codeDic):
             except ReadTimeout as e:
                 tmp = {code:{"isOk":False, "fundName":"", "fundType":ctype, "comment":"请求超时"}}
                 continue
+            aShareSearch = []
             if res.status_code == 200:
                 aShareSearch = res.text.split("\"")[1]
             else:
@@ -228,6 +230,7 @@ def queryName(codeDic):
             except ReadTimeout as e:
                 tmp = {code:{"isOk":False, "fundName":"", "fundType":ctype, "comment":"请求超时"}}
                 continue
+            hShareSearch = []
             if res.status_code == 200:
                 hShareSearch = res.text.split("\"")[1]
             else:
@@ -237,6 +240,24 @@ def queryName(codeDic):
                 tmp = {code:{"isOk":False, "fundName":"", "fundType":ctype, "comment":"该代码不存在"}}
             else:
                 tmp = {code:{"isOk":True, "fundName":hShareSearch.split(',')[1], "fundType":ctype, "comment":""}}
+
+        elif ctype == 'etf':                
+            etf_code = 'f_' + code
+            try:
+                res = requests.get("https://hq.sinajs.cn/list={}".format(etf_code.strip()),timeout=5)
+            except ReadTimeout as e:
+                tmp = {code:{"isOk":False, "fundName":"", "fundType":ctype, "comment":"请求超时"}}
+                continue
+            etfSearch = []
+            if res.status_code == 200:
+                etfSearch = res.text.split("\"")[1]
+            else:
+                tmp = {code:{"isOk":False, "fundName":"", "fundType":ctype, "comment":"请求错误"}}
+                continue
+            if len(etfSearch) == 0:
+                tmp = {code:{"isOk":False, "fundName":"", "fundType":ctype, "comment":"该代码不存在"}}
+            else:
+                tmp = {code:{"isOk":True, "fundName":etfSearch.split(',')[0], "fundType":ctype, "comment":""}}
         
         result.append(tmp)
         

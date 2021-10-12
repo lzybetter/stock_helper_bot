@@ -26,4 +26,3 @@ def getSqlConfig():
     password = config.get('db', 'password')
     
     return host, port, user, password
-
