@@ -3,7 +3,7 @@ import query
 import CMD
 import util
 
-def queryAll(chat_id):
+def queryAll(chat_id, scheduler = False):
     lines = save.queryDB(chat_id, needColumnsList=['fundCode', 'type'], condition={"isWatch": 1})
     reply_text = ""
     if len(lines) == 0:
@@ -12,7 +12,7 @@ def queryAll(chat_id):
         codeDict = {}
         for line in lines:
             codeDict[line[0]] = line[1]
-        reply_text = query.query(codeDict)
+        reply_text = query.query(codeDict, scheduler)
     
     return reply_text
 

@@ -1,15 +1,17 @@
 import command
 import re
 from apscheduler.jobstores.base import JobLookupError
+import util
 
 def schedule_query(chat_id):
-    reply_text = command.queryAll(chat_id)
+    reply_text = command.queryAll(chat_id, scheduler=True)
     return reply_text
 
 def schedule(bot, chat_id):
     
     reply_text = schedule_query(chat_id)
-    bot.sendMessage(chat_id=chat_id, text=reply_text)
+    if reply_text != "":
+      bot.sendMessage(chat_id=chat_id, text=reply_text)
 
 
 def add_schedule(scheduler, bot, chat_id, add_schedule_text):
@@ -23,8 +25,8 @@ def add_schedule(scheduler, bot, chat_id, add_schedule_text):
         scheduler.add_job(
           schedule,
           trigger='cron',
-          day_of_week='mon-fri',
-          hour='9-11, 13-14',
+          day_of_week='mon-sun',
+          hour='9-17',
           minute = '*/'+str(t),
           args=[bot, chat_id]
         )

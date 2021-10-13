@@ -37,9 +37,9 @@ def respond():
   save.createTable(chat_id)
   if not SCHEDULERED:
     scheduler.add_job(
-      schedule_query,
+      schedule.schedule,
       trigger='cron',
-      day_of_week='mon-fri',
+      day_of_week='mon-sun',
       hour=14,
       minute=50,
       args=[bot, chat_id]
@@ -165,31 +165,6 @@ def set_webhook():
 @app.route('/')
 def index():
    return '.'
-
-def schedule_query(bot, chat_id):
-
-  conn = sqlite3.connect('record.db')
-  cursor = conn.cursor()
-  cursor.execute("select fundCode from \'{}\'".format("record_" + str(chat_id)))
-  lines = cursor.fetchall()
-  reply_text = ""
-  if len(lines) == 0:
-    reply_text = "目前没有记录，请先建立记录"
-  else:
-    tmp = []
-    for line in lines:
-      tmp.append(line[0])
-    lines = list(set(tmp))
-    reply_text = queryFund(lines)
-    
-  bot.sendMessage(chat_id=chat_id, text=reply_text)
-  cursor.close()
-  conn.close()
-
-  return 1
-
-
-
 
 if __name__ == '__main__':
   app.run()

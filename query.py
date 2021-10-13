@@ -3,8 +3,9 @@ from requests.exceptions import ReadTimeout
 import json
 import re
 from CMD import CN_CODE_TYPE
+import util
 
-def query(codeDic):
+def query(codeDic, scheduler = False):
     
     fundList = []
     AShareList = []
@@ -19,10 +20,22 @@ def query(codeDic):
             HShareList.append(code)
         elif ctype == 'etf':
             ETFList.append(code)
-    fundResult = queryFund(fundList)
-    aShareResult = queryAShares(AShareList)
-    hShareResult = queryHShares(HShareList)
-    ETFResult = queryETF(ETFList)
+    fundResult = ""
+    aShareResult = ""
+    ETFResult = ""
+    hShareResult = ""
+    if scheduler:
+        if util.getAShareStatus():
+            fundResult = queryFund(fundList)
+            aShareResult = queryAShares(AShareList)
+            ETFResult = queryETF(ETFList)
+        if util.getHShareStatus():
+            hShareResult = queryHShares(HShareList)
+    else:
+        fundResult = queryFund(fundList)
+        aShareResult = queryAShares(AShareList)
+        hShareResult = queryHShares(HShareList)
+        ETFResult = queryETF(ETFList)
     reply_text = fundResult + aShareResult + hShareResult + ETFResult
     return reply_text
 
