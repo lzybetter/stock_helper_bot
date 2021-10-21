@@ -41,7 +41,8 @@ def queryCode(query_text):
     else:
         tmp = query.query(codeDict)
         reply_text = reply_text + tmp
-    
+
+    reply_text = "------------本次更新---------------\n" + reply_text
     return reply_text
 
 def saveRecord(chat_id, save_text):
@@ -92,7 +93,6 @@ def deleteRecord(chat_id, delete_text):
     reply_text = ""
     fundCodeList = []
     for t in delete_text:
-        print(t)
         if not util.isNumber(t):
             reply_text = reply_text + "代码必须应为数字：" + t + "\n"
         else:
@@ -113,22 +113,164 @@ def deleteAll(chat_id):
 
 def listRecord(chat_id):
     reply_text = ""
-    lines = save.queryDB(chat_id, needColumnsList=['fundCode', "fundName", 'type', "isHold", "isWatch"])
-    print(lines)
+    lines = save.queryDB(chat_id, needColumnsList=['fundCode', "fundName", 'type', "isHold", "isWatch", "cost_price", "amount"])
     if len(lines) == 0:
         reply_text = "目前没有记录，请先建立记录"
     else:
         for line in lines:
-            if line[3] == 0:
-                isHold = "否"
-            else:
-                isHold = "是"
             if line[4] == 0:
                 isWatch = "否"
             else:
                 isWatch = "是"
-            tmp = "基金代码：%s，基金名称：%s, 基金类型：%s，是否持有：%s，是否关注：%s \n"\
-                %(line[0], line[1], line[2], isHold, isWatch)
+            if line[3] == 0:
+                isHold = "否"
+                tmp = "基金代码：%s，基金名称：%s, 基金类型：%s，是否持有：%s，是否关注：%s \n"\
+                    %(line[0], line[1], line[2], isHold, isWatch)
+            else:
+                isHold = "是"
+                tmp = "基金代码：%s，基金名称：%s, 基金类型：%s，是否持有：%s, 成本价：%.2f, 持有份额：%.2f，是否关注：%s \n"\
+                    %(line[0], line[1], line[2], isHold, line[5], line[6], isWatch)
             reply_text = reply_text + tmp
+    
+    return reply_text
+
+def changeName(chat_id, change_text):
+
+    reply_text = ""
+    num = len(change_text)
+    change_text = []
+    if num%2 != 0:
+        reply_text = "每个代码只能对应一个名字"
+    else:
+        num = int(num / 2) - 1
+        for i in range(0, num, 2):
+            code = change_text[i]
+            changeName = change_text[i+2]
+            change_text.append({code:changeName})
+
+        reply_text = reply_text + save.changeName(chat_id, change_text)
+    
+    return reply_text
+
+def buyRecord(chat_id, buy_text):
+    reply_text = ""
+    next_text = "type"
+    code_type = "fu"
+    code = ""
+    price = 0
+    amount = 0
+    saveDict = []
+    for t in buy_text:
+        if next_text == "type":
+            if t in CMD.CODE_TYPE:
+                code_type = t
+            elif util.isNumber(t) and len(t.strip()) in (5, 6):
+                code_type = code_type
+            else:
+                reply_text = reply_text + "无法识别的类型: " + t + "\n"
+                code_type = ""
+            next_text = "code"
+        elif next_text == "code":
+            code = ""
+            if not util.isNumber(t):
+                reply_text = reply_text + "代码必须应为数字：" + t + "\n"
+            elif code_type == 'hk' and len(t.strip()) != 5:
+                reply_text = reply_text + "港股代码应为5位: " + t + "\n"
+            elif code_type == 'cn' and len(t.strip()) != 6:
+                reply_text = reply_text + "A股代码应为6位: " + t + "\n"
+            elif code_type == 'etf' and len(t.strip()) != 6:
+                reply_text = reply_text + "ETF代码应为6位: " + t + "\n"
+            elif code_type == 'fu' and len(t.strip()) != 6:
+                reply_text = reply_text + "基金代码应为6位: " + t + "\n"
+            else:
+                code = t
+            next_text = "price"
+        elif next_text == "price":
+            if not util.isNumber(t) or float(t) <= 0:
+                reply_text = reply_text + "单价必须应为数字, 且必须为正数：" + t + "\n"
+                price = 0
+            else:
+                price = float(t)
+            next_text = "amount"
+        elif next_text == "amount":
+            if not util.isNumber(t) or float(t) <= 0:
+                reply_text = reply_text + "份数必须应为数字, 且必须为正数：" + t + "\n"
+                amount = 0
+            else:
+                amount = float(t)
+            next_text = "type"
+            if code_type != "" and code != "" and price > 0 and amount > 0:
+                saveDict.append({code:{"cost_price":price, "amount":amount, "type": code_type}})
+    if len(saveDict) > 0:
+        reply_text = reply_text + save.buyRecord(chat_id, saveDict)
+    else:
+        reply_text = reply_text + "请输入有效的购买记录"
+    return reply_text
+
+def sellRecord(chat_id, sell_text):
+    reply_text = ""
+    next_text = "code"
+    code = ""
+    price = 0
+    amount = 0
+    now_amount = 0
+    sellDict = []
+    isAll = False
+    for t in sell_text:
+        if next_text == "code":
+            code = ""
+            if not util.isNumber(t):
+                reply_text = reply_text + "代码必须为数字：" + t + "\n"
+            elif len(t) not in (5,6):
+                reply_text = reply_text + "代码必须为5/6位数字：" + t + "\n"
+            else:
+                code = t
+                lines = save.queryDB(chat_id, fundCodeList=[code], needColumnsList=["amount", "isHold"])
+                if len(lines) > 0:
+                    isHold = lines[0][1]
+                    if isHold == 0:
+                        reply_text = reply_text + "您未持有该股票：" + t + "\n"
+                        code = ""
+                    else:
+                        now_amount = float(lines[0][0])
+                        if now_amount == 0:
+                            reply_text = reply_text + "未持有的份数为0，无法卖出：" + t + "\n"
+                            code = ""
+                else:
+                    reply_text = reply_text + "没有该记录：" + t + "\n"
+                    code = ""
+            next_text = "price"
+        elif next_text == "price":
+            isAll = False
+            next_text = "amount"
+            if t == "all" or t == "ALL":
+                isAll = True
+                price = 0
+                amount = 0
+                next_text = "code"
+                if code != "" and isAll :
+                    sellDict.append({code:{"isAll": isAll, "cost_price":price, "amount":amount}})
+            elif not util.isNumber(t) or float(t) <= 0:
+                reply_text = reply_text + "单价必须应为数字, 且必须为正数：" + t + "\n"
+                price = 0
+            else:
+                price = float(t)
+        elif next_text == "amount":
+            if not util.isNumber(t) or float(t) <= 0:
+                reply_text = reply_text + "份数必须应为数字, 且必须为正数：" + t + "\n"
+                amount = 0
+            elif amount > now_amount:
+                reply_text = reply_text + "卖出份数大于持有份数，请检查：" + t + "\n"
+                amount = 0
+            else:
+                amount = float(t)
+            if code != "" and price > 0 and amount > 0 :
+                sellDict.append({code:{"isAll": isAll, "cost_price":price, "amount":amount}})
+            next_text = "code"
+        
+    if len(sellDict) > 0:
+        reply_text = reply_text + save.sellRecord(chat_id, sellDict)
+    else:
+        reply_text = reply_text + "请输入卖出的购买记录"
     
     return reply_text

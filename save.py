@@ -1,5 +1,7 @@
+import re
 import pymysql
 from config import getSqlConfig
+import query
 
 def getConn(db=None):
     host, port, user, password = getSqlConfig()
@@ -20,7 +22,7 @@ def createTable(chat_id):
     type  VARCHAR(20) not null COMMENT \'类型， fu-基金，cn-A股，hk-港股\', \
     isHold int not null COMMENT \'是否持仓\', \
     cost_price float COMMENT \'持仓成本\', \
-    total float COMMENT \'持仓总额\', \
+    amount float COMMENT \'持仓份数\', \
     isWatch int not null default 0 COMMENT \'是否关注， 0-不关注，1-关注\', \
     highPrice float COMMENT \'最高价\', \
     highPriceDate VARCHAR(20) COMMENT \'最高价记录时间\', \
@@ -44,7 +46,6 @@ def saveNewRecord(chat_id, newRecords):
         save_sql = save_sql + "(\'%s\', \'%s\', \'%s\', %d, %d), "%(fundCode, fundName, fundType, 0, 1)
     
     save_sql = save_sql[0:-2]
-    print(save_sql)
 
     try:
         cur.execute(save_sql)
@@ -154,12 +155,36 @@ def buyRecord(chat_id, updateList):
     
     reply_text = ""
     for record in updateList:
-        # 字典格式: {"fundCode":{"cost_price": 123, "total":1234}}
+        # 字典格式: {"fundCode":{"cost_price": 123, "amount":1234, "type":"hk"}}
         fundCode= list(record.keys())[0]
-        cost_price, total_price = record[fundCode].items()
-        cost_price = cost_price[1]
-        total_price = total_price[1]
-        update_sql = "UPDATE %s SET cost_price=%f, total=%f,isHold = 1 where fundCode = \'%s\'"%(("record_"+chat_id).strip(), cost_price, total_price, fundCode)
+        cost_price, amount, code_type = record[fundCode].items()
+        cost_price = float(cost_price[1])
+        amount = float(amount[1])
+        code_type = code_type[1]
+        lines = queryDB(chat_id, fundCodeList=[fundCode], needColumnsList=["cost_price", "amount", "isHold"])
+        if len(lines) > 0:
+            now_cost_price = lines[0][0]
+            now_amount = lines[0][1]
+            isHold = lines[0][2]
+            if isHold == 1:
+                now_total = now_cost_price * now_amount
+                total = now_total + cost_price * amount
+                amount = now_amount + amount
+                cost_price = round(total/amount, 2)
+
+            update_sql = "UPDATE %s SET cost_price=%f, amount=%f,isHold = 1 where fundCode = \'%s\'"\
+                %(("record_"+chat_id).strip(), cost_price, amount, fundCode)
+        else:
+            fundName = query.queryName({fundCode:code_type})[fundCode]
+            if fundName['isOk']:
+                fundName = fundName["fundName"]
+            else:
+                reply_text = reply_text + "%s, 该代码未必记录，且获取名称时错误，请后续更新\n"%fundCode
+                fundName = ""
+            update_sql = """insert into %s(fundCode, fundName, type, isHold, isWatch, cost_price, amount) 
+                values (\'%s\', \'%s\', \'%s\', %d, %d, %f, %f)"""%\
+                (("record_"+chat_id).strip(), fundCode, fundName, code_type, 1, 1, cost_price, amount)
+            
         conn = getConn(db='fund_helper')
         cur = conn.cursor()
         cur.execute(update_sql)
@@ -176,22 +201,33 @@ def buyRecord(chat_id, updateList):
     return reply_text
 
 def sellRecord(chat_id, updateList):
-    reply_text = ""
 
+    reply_text = ""
     for record in updateList:
         # 字典格式: {"fundCode":{"isAll":True,"cost_price": 123, "total":1234}}
         fundCode= list(record.keys())[0]
-        isAll, cost_price, total_price = record[fundCode].items()
+        isAll, cost_price, amount = record[fundCode].items()
         isAll = isAll[1]
         if isAll:
             isHold = 0
             cost_price = 0
-            total_price = 0
+            amount = 0
         else:
-            isHold = 1
-            cost_price = cost_price[1]
-            total_price = total_price[1]
-        update_sql = "UPDATE %s SET cost_price=%f, total=%f,isHold = %d where fundCode = \'%s\'"%(("record_"+chat_id).strip(), cost_price, total_price, isHold, fundCode)
+            lines = queryDB(chat_id, fundCodeList=[fundCode], needColumnsList=['cost_price', "amount"])
+            now_cost_price = float(lines[0][0])
+            now_amount = float(lines[0][1])
+            cost_price = float(cost_price[1])
+            amount = float(amount[1])
+            if now_amount == amount:
+                isHold = 0
+                cost_price = 0
+                amount = 0
+            else:
+                isHold = 1
+                total = now_amount * now_cost_price - amount * cost_price
+                amount = now_amount - amount
+                cost_price = total/amount
+        update_sql = "UPDATE %s SET cost_price=%f, amount=%f,isHold = %d where fundCode = \'%s\'"%(("record_"+chat_id).strip(), cost_price, amount, isHold, fundCode)
         conn = getConn(db='fund_helper')
         cur = conn.cursor()
         try:
@@ -206,3 +242,28 @@ def sellRecord(chat_id, updateList):
 
     return reply_text
 
+def changeName(chat_id, changeList):
+    reply_text = ""
+
+    for record in changeList:
+        # 字典格式：｛"fundCode": "ChangeName"｝
+        fundCode = list(record.keys())[0]
+        changeName = record[fundCode]
+        lines = queryDB(chat_id, fundCodeList=[fundCode])
+        if len(lines) == 0:
+            reply_text = "该代码不存在：" + fundCode + "\n"
+        else:
+            change_sql = "UPDATE %s SET fundName = \'%s\' where fundCode = \'%s\'"%(("record_"+chat_id).strip(), changeName, fundCode)
+        conn = getConn(db='fund_helper')
+        cur = conn.cursor()    
+        try:
+            cur.execute(change_sql)
+            conn.commit()
+            reply_text = reply_text + "%s名称已更改为：%s\n"%(fundCode, changeName)
+        except:
+            reply_text = reply_text + "\n\n%s更新错误，请重试"%fundCode
+        finally:
+            cur.close()
+            conn.close()
+    
+    return reply_text

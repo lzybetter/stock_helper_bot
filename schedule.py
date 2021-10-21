@@ -11,6 +11,7 @@ def schedule(bot, chat_id):
     
     reply_text = schedule_query(chat_id)
     if reply_text != "":
+      reply_text = "------------本次更新---------------\n" + reply_text
       bot.sendMessage(chat_id=chat_id, text=reply_text)
 
 

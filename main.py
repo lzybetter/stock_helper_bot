@@ -51,43 +51,32 @@ def respond():
   
   if text == "/start":
     bot_welcome = """
-    欢迎使用FundBot，
-    - “query 基金代号” 查询指定基金的单位净值及涨跌幅, 可同时查询多个基金
-    - “record 基金代号” 记录基金号, 可同时记录多个基金
-    - “delete 基金代号” 删除记录的基金代号，可同时删除多个基金
-    - “buy 基金代号 购入金额 购入份数” 记录买入操作，可以同时添加多个买入记录
-    - “sell 基金代号 卖出金额 卖出份数” 记录卖出操作，可以同时添加多个卖出记录
-    - “sell 基金代号 all” 记录指定基金的清仓，可以同时进行多个基金的清仓
-    - “sell all” 同时记录全部基金的清仓
-    - “list my hold” 列出目前所有的持仓记录
-    - “delete all/clean” 清除所有的记录
-    - “list record” 列出目前所有记录
-    - “add schedule 分钟数” 增加一个定时器，在周一到周五的9点到15点之间按指定的间隔自动查询
-    - “remove schedule id” 删除一个定时器
-    - “list schedule” 列出所有的定时器
-    - “help” 显示命令帮助
-      PS：本bot会默认生成一个于周一到周五的每天14点50分运行的定时器，用于自动查询收盘前的涨跌幅
+    欢迎使用stock_helper_bot：
+    请务必注意：由于接口限制，本bot的股票信息并非实时，存在15min以上的延迟！！！
     """
     # send the welcoming message
     bot.sendMessage(chat_id=chat_id, text=bot_welcome)
   elif text == "help":
     help_text =  """
-    感谢使用FundBot，
-    - “query 基金代号” 查询指定基金的单位净值及涨跌幅, 可同时查询多个基金
-    - “record 基金代号” 记录基金号, 可同时记录多个基金
-    - “delete 基金代号” 删除记录的基金代号，可同时删除多个基金
-    - “buy 基金代号 购入金额 购入份数” 记录买入操作，可以同时添加多个买入记录
-    - “sell 基金代号 卖出金额 卖出份数” 记录卖出操作，可以同时添加多个卖出记录
-    - “sell 基金代号 all” 记录指定基金的清仓，可以同时进行多个基金的清仓
-    - “sell all” 同时记录全部基金的清仓
+    感谢使用stock_helper_bot，
+    - “query 代码类型 代码” 查询指定股票/基金的最近价格及涨跌幅, 可同时查询多个股票/基金
+    - “record 代码类型 代码” 记录股票/基金, 可同时记录多个股票/基金
+    - “delete 代码” 删除记录的股票/基金，可同时删除多个股票/基金
+    - “buy 代码类型 代码 购入成本 购入份数” 记录买入操作，可以同时添加多个买入记录
+    - “sell 代码 卖出成本 卖出份数” 记录卖出操作，可以同时添加多个卖出记录
+    - “sell 代码 all” 记录指定基金的清仓，可以同时进行多个基金的清仓
     - “list my hold” 列出目前所有的持仓记录
     - “delete all/clean” 清除所有的记录
     - “list record” 列出目前所有记录
-    - “add schedule 分钟数” 增加一个定时器，在周一到周五的9点到15点之间按指定的间隔自动查询
+    - “add schedule 分钟数” 增加一个定时器，在9点到16点之间按指定的间隔自动查询
     - “remove schedule id” 删除一个定时器
-    - “list schedule” 列出所有的定时器
+    - “list my schedule” 列出所有的定时器
     - “help” 显示命令帮助
-      PS：本bot会默认生成一个于周一到周五的每天14点50分运行的定时器，用于自动查询收盘前的涨跌幅
+    - 支持的股票/基金类型：A股(包括场内ETF):cn, 港股：hk，基金：fu，场外ETF：etf
+    PS：
+    - 本bot会默认生成一个每天14点50分运行的定时器，用于自动查询收盘前的涨跌幅；
+    - 定时查询时，bot会自动检测开市情况，只在交易时段报告；
+    - 由于接口限制，本bot的股票信息并非实时，存在15min以上的延迟！！！
     """
     bot.sendMessage(chat_id=chat_id, text=help_text)
 
@@ -126,7 +115,40 @@ def respond():
   elif "list my record" in text:
     reply_text = command.listRecord(chat_id)    
     bot.sendMessage(chat_id=chat_id, text=reply_text)
-  
+
+  elif "change record name" in text:
+    reply_text = ""
+    if len(text.split(" ")) == 3:
+      reply_text = "请输入需要改名的代码"
+    else:
+      change_text = text.split(" ")[3:]
+      reply_text = command.changeName(chat_id, change_text)
+    bot.sendMessage(chat_id=chat_id, text=reply_text)
+
+  elif "buy" in text:
+    # 输入为buy 类型 代码 单价 份数
+    reply_text = ""
+    lines = text.split(" ")[1:]
+    if len(lines) < 4:
+      reply_text = "您需要输入股票类型、股票代码、购入单价和购入份数"
+    else:
+      if len(lines)%4 != 0:
+        reply_text = "每个股票都需要完整的输入股票类型、股票代码、购入单价和购入份数"
+      else:
+        reply_text = command.buyRecord(chat_id, lines)
+    bot.sendMessage(chat_id=chat_id, text=reply_text)
+
+  elif "sell" in text:
+    # 输入为sell 代码 单价 份数
+    reply_text = ""
+    lines = text.split(" ")[1:]
+    if len(lines) < 2:
+      reply_text = "您需要输入股票代码、卖出单价和卖出份数"
+    else:
+        reply_text = command.sellRecord(chat_id, lines)
+
+    bot.sendMessage(chat_id=chat_id, text=reply_text)
+      
   elif "add schedule" in text:
     reply_text = schedule.add_schedule(scheduler, bot, chat_id, text)
     bot.sendMessage(chat_id=chat_id, text=reply_text)
