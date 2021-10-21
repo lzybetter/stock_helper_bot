@@ -1,0 +1,8 @@
+pymysql
+python-telegram-bot
+telebot
+telegram
+Flask
+APScheduler
+configparser
+requests
