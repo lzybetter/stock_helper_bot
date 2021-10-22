@@ -2,6 +2,7 @@ import save
 import query
 import CMD
 import util
+import datetime
 
 def queryAll(chat_id, scheduler = False):
     lines = save.queryDB(chat_id, needColumnsList=['fundCode', 'type'], condition={"isWatch": 1})
@@ -42,7 +43,7 @@ def queryCode(query_text):
         tmp = query.query(codeDict)
         reply_text = reply_text + tmp
 
-    reply_text = "------------本次更新---------------\n" + reply_text
+    reply_text = "----更新时间：%s----\n"%datetime.now(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + reply_text
     return reply_text
 
 def saveRecord(chat_id, save_text):
@@ -272,5 +273,45 @@ def sellRecord(chat_id, sell_text):
         reply_text = reply_text + save.sellRecord(chat_id, sellDict)
     else:
         reply_text = reply_text + "请输入卖出的购买记录"
+    
+    return reply_text
+
+def watchRecord(chat_id, watchList):
+    reply_text = ""
+    for t in watchList:
+        if not util.isNumber(t):
+            reply_text = reply_text + "代码必须为数字：" + t + "\n"
+        elif len(t) not in (5,6):
+            reply_text = reply_text + "代码必须为5/6位数字：" + t + "\n"
+        else:
+            lines = save.queryDB(chat_id, fundCodeList=[t], needColumnsList=["isWatch"])
+            if len(lines) < 1:
+                reply_text = reply_text + "未记录该代码，请先记录：%s\n"%t
+            else:
+                isWatch = lines[0][0]
+                if isWatch == 1:
+                    reply_text = reply_text + "该代码已关注：%s\n"%t
+                else:
+                    reply_text = reply_text + save.watchRecord(chat_id, watchList=[t])
+    
+    return reply_text
+
+def unwatchRecord(chat_id, unwatchList):
+    reply_text = ""
+    for t in unwatchList:
+        if not util.isNumber(t):
+            reply_text = reply_text + "代码必须为数字：" + t + "\n"
+        elif len(t) not in (5,6):
+            reply_text = reply_text + "代码必须为5/6位数字：" + t + "\n"
+        else:
+            lines = save.queryDB(chat_id, fundCodeList=[t], needColumnsList=["isWatch"])
+            if len(lines) < 1:
+                reply_text = reply_text + "未记录该代码，请先记录：%s\n"%t
+            else:
+                isWatch = lines[0][0]
+                if isWatch == 0:
+                    reply_text = reply_text + "该代码已取消关注：%s\n"%t
+                else:
+                    reply_text = reply_text + save.unwatchRecord(chat_id, unwatchList=[t])
     
     return reply_text

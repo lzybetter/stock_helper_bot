@@ -48,7 +48,9 @@ def respond():
 
   # Telegram understands UTF-8, so encode text for unicode compatibility
   text = update.message.text.encode('utf-8').decode()
-  
+
+  text = text.lower()
+
   if text == "/start":
     bot_welcome = """
     欢迎使用stock_helper_bot：
@@ -68,6 +70,8 @@ def respond():
     - “list my hold” 列出目前所有的持仓记录
     - “delete all/clean” 清除所有的记录
     - “list record” 列出目前所有记录
+    - “watch record” 关注股票/基金, 可同时关注多个股票/基金
+    - “unwatch record” 取消关注股票/基金, 可同时取消关注多个股票/基金
     - “add schedule 分钟数” 增加一个定时器，在9点到16点之间按指定的间隔自动查询
     - “remove schedule id” 删除一个定时器
     - “list my schedule” 列出所有的定时器
@@ -77,6 +81,7 @@ def respond():
     - 本bot会默认生成一个每天14点50分运行的定时器，用于自动查询收盘前的涨跌幅；
     - 定时查询时，bot会自动检测开市情况，只在交易时段报告；
     - 由于接口限制，本bot的股票信息并非实时，存在15min以上的延迟！！！
+    - 各命令均不计大小写；
     """
     bot.sendMessage(chat_id=chat_id, text=help_text)
 
@@ -145,7 +150,29 @@ def respond():
     if len(lines) < 2:
       reply_text = "您需要输入股票代码、卖出单价和卖出份数"
     else:
-        reply_text = command.sellRecord(chat_id, lines)
+      reply_text = command.sellRecord(chat_id, lines)
+
+    bot.sendMessage(chat_id=chat_id, text=reply_text)
+
+  elif "unwatch" in text:
+    #输入为unwatch 代码
+    reply_text = ""
+    lines = text.split(" ")[1:]
+    if len(lines) < 1:
+      reply_text = "您需要输入取消关注的代码"
+    else:
+      reply_text = command.unwatchRecord(chat_id, lines)
+
+    bot.sendMessage(chat_id=chat_id, text=reply_text)
+
+  elif "watch" in text:
+    #输入为watch 代码
+    reply_text = ""
+    lines = text.split(" ")[1:]
+    if len(lines) < 1:
+      reply_text = "您需要输入关注的代码"
+    else:
+      reply_text = command.watchRecord(chat_id, lines)
 
     bot.sendMessage(chat_id=chat_id, text=reply_text)
       

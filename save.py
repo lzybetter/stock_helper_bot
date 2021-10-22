@@ -1,3 +1,4 @@
+from os import replace
 import re
 import pymysql
 from config import getSqlConfig
@@ -262,6 +263,42 @@ def changeName(chat_id, changeList):
             reply_text = reply_text + "%s名称已更改为：%s\n"%(fundCode, changeName)
         except:
             reply_text = reply_text + "\n\n%s更新错误，请重试"%fundCode
+        finally:
+            cur.close()
+            conn.close()
+    
+    return reply_text
+
+def watchRecord(chat_id, watchList):
+    reply_text = ""
+    for record in watchList:
+        watch_sql = "UPDATE %s SET isWatch = 1 where fundCode = \'%s\'"%(("record_"+chat_id).strip(), record)
+        conn = getConn(db="fund_helper")
+        cur = conn.cursor()
+        try:
+            cur.execute(watch_sql)
+            conn.commit()
+            reply_text = reply_text + "%s已关注\n"%(record)
+        except:
+            reply_text = reply_text + "\n\n%s更新错误，请重试"%record
+        finally:
+            cur.close()
+            conn.close()
+    
+    return reply_text
+
+def unwatchRecord(chat_id, unwatchList):
+    reply_text = ""
+    for record in unwatchList:
+        watch_sql = "UPDATE %s SET isWatch = 0 where fundCode = \'%s\'"%(("record_"+chat_id).strip(), record)
+        conn = getConn(db="fund_helper")
+        cur = conn.cursor()
+        try:
+            cur.execute(watch_sql)
+            conn.commit()
+            reply_text = reply_text + "%s已取消关注\n"%(record)
+        except:
+            reply_text = reply_text + "\n\n%s更新错误，请重试"%record
         finally:
             cur.close()
             conn.close()
