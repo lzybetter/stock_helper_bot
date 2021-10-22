@@ -1,7 +1,7 @@
+import datetime
 import command
 import re
 from apscheduler.jobstores.base import JobLookupError
-import util
 
 def schedule_query(chat_id):
     reply_text = command.queryAll(chat_id, scheduler=True)
@@ -11,7 +11,7 @@ def schedule(bot, chat_id):
     
     reply_text = schedule_query(chat_id)
     if reply_text != "":
-      reply_text = "------------本次更新---------------\n" + reply_text
+      reply_text = "----更新时间：%s----\n"%datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + reply_text
       bot.sendMessage(chat_id=chat_id, text=reply_text)
 
 
