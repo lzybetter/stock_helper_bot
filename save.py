@@ -176,11 +176,11 @@ def buyRecord(chat_id, updateList):
             update_sql = "UPDATE %s SET cost_price=%f, amount=%f,isHold = 1 where fundCode = \'%s\'"\
                 %(("record_"+chat_id).strip(), cost_price, amount, fundCode)
         else:
-            fundName = query.queryName({fundCode:code_type})[fundCode]
+            fundName = query.queryName({fundCode:code_type})[0][fundCode]
             if fundName['isOk']:
                 fundName = fundName["fundName"]
             else:
-                reply_text = reply_text + "%s, 该代码未必记录，且获取名称时错误，请后续更新\n"%fundCode
+                reply_text = reply_text + "%s, 该代码未被记录，且获取名称时错误，请后续更新\n"%fundCode
                 fundName = ""
             update_sql = """insert into %s(fundCode, fundName, type, isHold, isWatch, cost_price, amount) 
                 values (\'%s\', \'%s\', \'%s\', %d, %d, %f, %f)"""%\
@@ -188,7 +188,6 @@ def buyRecord(chat_id, updateList):
             
         conn = getConn(db='fund_helper')
         cur = conn.cursor()
-        cur.execute(update_sql)
         try:
             cur.execute(update_sql)
             conn.commit()
