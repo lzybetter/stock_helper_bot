@@ -3,6 +3,7 @@ from requests.exceptions import ReadTimeout
 import json
 import re
 from CMD import CN_CODE_TYPE
+from CMD import sina_headers
 import util
 
 def query(codeDic, scheduler = False):
@@ -86,7 +87,7 @@ def queryAShares(AShareList):
                 reply_text = reply_text + "该代码不存在或暂不支持该代码\n"
                 continue
             try:
-                res = requests.get("https://hq.sinajs.cn/list={}".format(ashare_code.strip()),timeout=5)
+                res = requests.get("https://hq.sinajs.cn/list={}".format(ashare_code.strip()),timeout=5, headers=sina_headers)
             except ReadTimeout as e:
                 tmp = "股票代码: {}, 查询超时，请稍后再试".format(str(ashare.strip()))
                 continue
@@ -108,7 +109,7 @@ def queryAShares(AShareList):
                 # 涨跌
                 rate = round((shareNowPrice - shareLastDayPrice)/shareLastDayPrice*100,2)
                 # 时间
-                priceTime = aShareSearch.split(',')[-4] + " " + aShareSearch.split(',')[-3][0:-3]
+                priceTime = aShareSearch.split(',')[-3] + " " + aShareSearch.split(',')[-2]
 
                 tmp = "股票代码: {}, 股票名称：{}, 实时价格: {},涨跌: {}%,更新时间: {}".format(ashare, shareName, shareNowPrice, rate, priceTime)
     
@@ -126,7 +127,7 @@ def queryHShares(HShareList):
         else:
             hshare_code = 'hk' + hshare
             try:
-                res = requests.get("https://hq.sinajs.cn/list={}".format(hshare_code.strip()),timeout=5)
+                res = requests.get("https://hq.sinajs.cn/list={}".format(hshare_code.strip()),timeout=5, headers=sina_headers)
             except ReadTimeout as e:
                 tmp = "股票代码: {}, 查询超时，请稍后再试".format(str(hshare.strip()))
                 continue
@@ -169,7 +170,7 @@ def queryETF(ETFList):
             # 因此，先查询fu_code，如无结果，再查询f_code；
             etf_code = 'fu_' + etf
             try:
-                res = requests.get("https://hq.sinajs.cn/list={}".format(etf_code.strip()),timeout=5)
+                res = requests.get("https://hq.sinajs.cn/list={}".format(etf_code.strip()),timeout=5, headers=sina_headers)
             except ReadTimeout as e:
                 tmp = "ETF代码: {}, 查询超时，请稍后再试".format(str(etf.strip()))
                 continue
@@ -179,7 +180,7 @@ def queryETF(ETFList):
                 if len(etfSearch) == 0:
                     etf_code = 'f_' + etf
                     try:
-                        res = requests.get("https://hq.sinajs.cn/list={}".format(etf_code.strip()),timeout=5)
+                        res = requests.get("https://hq.sinajs.cn/list={}".format(etf_code.strip()),timeout=5, headers=sina_headers)
                     except ReadTimeout as e:
                         tmp = "ETF代码: {}, 查询超时，请稍后再试".format(str(etf.strip()))
                         continue
@@ -213,7 +214,7 @@ def queryETF(ETFList):
                     etfNowPrice = float(etfSearch.split(',')[2])
                     # 涨跌
                     rate = round((etfNowPrice - etfLastDayPrice)/etfLastDayPrice*100,2)
-                    priceTime = etfSearch.split(',')[-1] + etfSearch.split(',')[1]
+                    priceTime = etfSearch.split(',')[-1] + " " + etfSearch.split(',')[1]
                     tmp = "ETF代码: {}, ETF名称：{}, 当前净值: {},涨跌: {}%,更新时间: {}".format(etf, etfName, etfNowPrice, rate, priceTime)
 
         reply_text = reply_text + "\n\n" + tmp
@@ -249,7 +250,7 @@ def queryName(codeDic):
         elif ctype == 'cn':
             ashare_code = CN_CODE_TYPE[code[0:3]] + code
             try:
-                res = requests.get("https://hq.sinajs.cn/list={}".format(ashare_code.strip()),timeout=5)
+                res = requests.get("https://hq.sinajs.cn/list={}".format(ashare_code.strip()),timeout=5, headers=sina_headers)
             except ReadTimeout as e:
                 tmp = {code:{"isOk":False, "fundName":"", "fundType":ctype, "comment":"请求超时"}}
                 continue
@@ -267,7 +268,7 @@ def queryName(codeDic):
         elif ctype == 'hk':                
             hshare_code = 'hk' + code
             try:
-                res = requests.get("https://hq.sinajs.cn/list={}".format(hshare_code.strip()),timeout=5)
+                res = requests.get("https://hq.sinajs.cn/list={}".format(hshare_code.strip()),timeout=5, headers=sina_headers)
             except ReadTimeout as e:
                 tmp = {code:{"isOk":False, "fundName":"", "fundType":ctype, "comment":"请求超时"}}
                 continue
@@ -285,7 +286,7 @@ def queryName(codeDic):
         elif ctype == 'etf':                
             etf_code = 'f_' + code
             try:
-                res = requests.get("https://hq.sinajs.cn/list={}".format(etf_code.strip()),timeout=5)
+                res = requests.get("https://hq.sinajs.cn/list={}".format(etf_code.strip()),timeout=5,headers=sina_headers)
             except ReadTimeout as e:
                 tmp = {code:{"isOk":False, "fundName":"", "fundType":ctype, "comment":"请求超时"}}
                 continue

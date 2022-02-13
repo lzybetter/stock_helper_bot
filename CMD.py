@@ -21,3 +21,5 @@ CN_CODE_TYPE = {
     "18":"sz"
     }
 
+# 新浪接口header
+sina_headers = {'Referer':"https://finance.sina.com.cn"}
