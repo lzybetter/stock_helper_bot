@@ -79,10 +79,13 @@ def queryAShares(AShareList):
         if len(str(ashare.strip())) != 6:
             tmp ="A股代码为6位，请检查".format(str(ashare.strip()))
         else:
+            cn_code = ''
             if ashare[0:2] in CN_CODE_TYPE:
-                ashare_code = CN_CODE_TYPE[ashare[0:2]] + ashare
+                cn_code = CN_CODE_TYPE[ashare[0:2]]
+                ashare_code = cn_code + ashare
             elif ashare[0:3] in CN_CODE_TYPE:
-                ashare_code = CN_CODE_TYPE[ashare[0:3]] + ashare
+                cn_code = CN_CODE_TYPE[ashare[0:3]]
+                ashare_code = cn_code + ashare
             else:
                 reply_text = reply_text + "该代码不存在或暂不支持该代码\n"
                 continue
@@ -109,7 +112,10 @@ def queryAShares(AShareList):
                 # 涨跌
                 rate = round((shareNowPrice - shareLastDayPrice)/shareLastDayPrice*100,2)
                 # 时间
-                priceTime = aShareSearch.split(',')[-3] + " " + aShareSearch.split(',')[-2]
+                if cn_code == 'sh':
+                    priceTime = aShareSearch.split(',')[-4] + " " + aShareSearch.split(',')[-3]
+                elif cn_code == 'sz':
+                    priceTime = aShareSearch.split(',')[-3] + " " + aShareSearch.split(',')[-2]
 
                 tmp = "股票代码: {}, 股票名称：{}, 实时价格: {},涨跌: {}%,更新时间: {}".format(ashare, shareName, shareNowPrice, rate, priceTime)
     
@@ -140,6 +146,7 @@ def queryHShares(HShareList):
                 tmp = "不存在该股票代码：{}".format(hshare.strip())
             # 遍历结果
             else:
+                print(hShareSearch)
                 # 名称
                 shareName = hShareSearch.split(',')[1]
                 # 昨收
