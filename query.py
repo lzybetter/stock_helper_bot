@@ -25,19 +25,22 @@ def query(codeDic, scheduler = False):
     aShareResult = ""
     ETFResult = ""
     hShareResult = ""
+    reply_text = ""
     if scheduler:
         if util.getAShareStatus():
             fundResult = queryFund(fundList)
             aShareResult = queryAShares(AShareList)
             ETFResult = queryETF(ETFList)
+            reply_text = fundResult + aShareResult + ETFResult
         if util.getHShareStatus():
             hShareResult = queryHShares(HShareList)
+            reply_text = reply_text + hShareResult
     else:
         fundResult = queryFund(fundList)
         aShareResult = queryAShares(AShareList)
         hShareResult = queryHShares(HShareList)
         ETFResult = queryETF(ETFList)
-    reply_text = fundResult + aShareResult + hShareResult + ETFResult
+        reply_text = fundResult + aShareResult + hShareResult + ETFResult
     return reply_text
 
 
@@ -146,7 +149,6 @@ def queryHShares(HShareList):
                 tmp = "不存在该股票代码：{}".format(hshare.strip())
             # 遍历结果
             else:
-                print(hShareSearch)
                 # 名称
                 shareName = hShareSearch.split(',')[1]
                 # 昨收
@@ -255,7 +257,16 @@ def queryName(codeDic):
                 tmp = {code:{"isOk":True, "fundName":data['name'], "fundType":ctype, "comment":""}}
 
         elif ctype == 'cn':
-            ashare_code = CN_CODE_TYPE[code[0:3]] + code
+            cn_code = ''
+            if code[0:2] in CN_CODE_TYPE:
+                cn_code = CN_CODE_TYPE[code[0:2]]
+                ashare_code = cn_code + code
+            elif code[0:3] in CN_CODE_TYPE:
+                cn_code = CN_CODE_TYPE[code[0:3]]
+                ashare_code = cn_code + code
+            else:
+                reply_text = reply_text + "该代码不存在或暂不支持该代码\n"
+                continue
             try:
                 res = requests.get("https://hq.sinajs.cn/list={}".format(ashare_code.strip()),timeout=5, headers=sina_headers)
             except ReadTimeout as e:
