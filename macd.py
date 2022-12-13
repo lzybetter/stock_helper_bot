@@ -3,14 +3,21 @@ import os
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from datetime import datetime, timedelta
 
 fig = plt.figure(figsize=(12, 8))
 ax = fig.add_subplot(111)
 
 os.environ['NO_PROXY'] = 'push2his.eastmoney.com'
 
+today = datetime.today().date()
+month_ago = today - timedelta(days=30)
+
+today_str = datetime.strftime(today, "%Y%m%d")
+month_ago_str = datetime.strftime(month_ago, "%Y%m%d")
+
 stock_code = '600577'
-df = ef.stock.get_quote_history(stock_code, beg='20220601', end='20220926')
+df = ef.stock.get_quote_history(stock_code, beg=month_ago_str, end=today_str)
 
 df['日期'] = pd.to_datetime(df['日期'])
 df['日期'] = df['日期'].apply(lambda x: x.strftime('%Y-%m-%d'))
