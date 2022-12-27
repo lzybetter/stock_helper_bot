@@ -108,7 +108,7 @@ def queryAShares(AShareList):
                 # 涨跌
                 rate = round((shareNowPrice - shareLastDayPrice)/shareLastDayPrice*100,2)
                 # 时间
-                priceTime = aShareSearch.split(',')[-4] + " " + aShareSearch.split(',')[-3][0:-3]
+                priceTime = aShareSearch.split(',')[30] + " " + aShareSearch.split(',')[31]
 
                 tmp = "股票代码: {}, 股票名称：{}, 实时价格: {},涨跌: {}%,更新时间: {}".format(ashare, shareName, shareNowPrice, rate, priceTime)
     
